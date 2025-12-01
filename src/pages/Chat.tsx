@@ -1,17 +1,30 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Loader2, BookOpen, Bot } from "lucide-react";
+import { ArrowLeft, Send, Loader2, BookOpen, Bot, History, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Curriculum } from "@/pages/Generator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  timestamp: number;
+}
+
+interface AssistantResponse {
+  reply: string;
+  suggestions?: string[];
 }
 
 const Chat = () => {
@@ -21,31 +34,93 @@ const Chat = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load curriculum and conversations from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("curriculum");
     if (stored) {
       setCurriculum(JSON.parse(stored));
     }
+
+    const storedConversations = localStorage.getItem("conversations");
+    if (storedConversations) {
+      const parsed = JSON.parse(storedConversations);
+      setConversations(parsed);
+      
+      // Load the most recent conversation
+      if (parsed.length > 0) {
+        const mostRecent = parsed[0];
+        setCurrentConversationId(mostRecent.id);
+        setMessages(mostRecent.messages);
+      }
+    }
   }, []);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
+  // Save conversation to localStorage
+  const saveConversation = (conversationId: string, updatedMessages: Message[]) => {
+    const title = updatedMessages[0]?.content.slice(0, 50) || "New Conversation";
+    const conversation: Conversation = {
+      id: conversationId,
+      title,
+      messages: updatedMessages,
+      timestamp: Date.now(),
+    };
 
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedConversations = [
+      conversation,
+      ...conversations.filter((c) => c.id !== conversationId),
+    ].slice(0, 20); // Keep only last 20 conversations
+
+    setConversations(updatedConversations);
+    localStorage.setItem("conversations", JSON.stringify(updatedConversations));
+  };
+
+  const startNewConversation = () => {
+    const newId = `conv_${Date.now()}`;
+    setCurrentConversationId(newId);
+    setMessages([]);
+    setSuggestions([]);
+    setShowHistory(false);
+  };
+
+  const loadConversation = (conversation: Conversation) => {
+    setCurrentConversationId(conversation.id);
+    setMessages(conversation.messages);
+    setSuggestions([]);
+    setShowHistory(false);
+  };
+
+  const handleSend = async (messageText?: string) => {
+    const textToSend = messageText || input;
+    if (!textToSend.trim() || loading) return;
+
+    // Start new conversation if none exists
+    const conversationId = currentConversationId || `conv_${Date.now()}`;
+    if (!currentConversationId) {
+      setCurrentConversationId(conversationId);
+    }
+
+    const userMessage: Message = { role: "user", content: textToSend };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setLoading(true);
+    setSuggestions([]);
 
     try {
       const { data, error } = await supabase.functions.invoke("chat-assistant", {
         body: {
-          message: input,
+          message: textToSend,
           planId: curriculum?.planId || null,
           conversationHistory: messages,
         },
@@ -53,11 +128,21 @@ const Chat = () => {
 
       if (error) throw error;
 
+      const response: AssistantResponse = data;
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.reply,
+        content: response.reply,
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      
+      // Set suggestions if provided
+      if (response.suggestions && response.suggestions.length > 0) {
+        setSuggestions(response.suggestions);
+      }
+
+      // Save conversation
+      saveConversation(conversationId, finalMessages);
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -70,16 +155,93 @@ const Chat = () => {
     }
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+    handleSend(suggestion);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-secondary flex flex-col">
       <div className="container mx-auto px-4 py-4">
-        <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" onClick={() => navigate("/")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startNewConversation}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Chat
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              <History className="mr-2 h-4 w-4" />
+              History
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 container mx-auto px-4 pb-4 grid lg:grid-cols-[400px_1fr] gap-4 overflow-hidden">
+      <div className="flex-1 container mx-auto px-4 pb-4 grid lg:grid-cols-[400px_1fr] gap-4 overflow-hidden relative">
+        {/* Conversation History Overlay */}
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setShowHistory(false)}
+            >
+              <motion.div
+                initial={{ x: -300 }}
+                animate={{ x: 0 }}
+                exit={{ x: -300 }}
+                className="absolute left-0 top-0 h-full w-80 bg-background shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Card className="h-full rounded-none border-0">
+                  <div className="p-4 border-b">
+                    <h3 className="font-display text-lg font-semibold">Conversation History</h3>
+                  </div>
+                  <ScrollArea className="h-[calc(100%-80px)]">
+                    <div className="p-4 space-y-2">
+                      {conversations.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No conversations yet
+                        </p>
+                      ) : (
+                        conversations.map((conv) => (
+                          <Button
+                            key={conv.id}
+                            variant={conv.id === currentConversationId ? "secondary" : "ghost"}
+                            className="w-full justify-start text-left h-auto py-3"
+                            onClick={() => loadConversation(conv)}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{conv.title}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(conv.timestamp).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </Button>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </Card>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Left Panel - Curriculum Summary */}
         <Card className="p-6 shadow-card overflow-y-auto hidden lg:block">
           <div className="flex items-center gap-2 mb-4">
@@ -193,6 +355,27 @@ const Chat = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Contextual Suggestions */}
+          {suggestions.length > 0 && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 flex flex-wrap gap-2"
+            >
+              {suggestions.map((suggestion, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="text-xs"
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </motion.div>
+          )}
+
           {/* Input */}
           <div className="flex gap-2">
             <Input
@@ -203,7 +386,7 @@ const Chat = () => {
               disabled={loading}
             />
             <Button
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={loading || !input.trim()}
               className="bg-gradient-primary"
             >

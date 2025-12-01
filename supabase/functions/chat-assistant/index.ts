@@ -4,6 +4,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function generateSuggestions(userMessage: string, aiReply: string, planId: string | null): string[] {
+  const suggestions: string[] = [];
+  const lowerMessage = userMessage.toLowerCase();
+  const lowerReply = aiReply.toLowerCase();
+
+  // Context-based suggestions
+  if (lowerMessage.includes("how") || lowerMessage.includes("what")) {
+    suggestions.push("Can you explain that with an example?");
+  }
+
+  if (lowerReply.includes("concept") || lowerReply.includes("topic")) {
+    suggestions.push("What are some practice problems for this?");
+  }
+
+  if (lowerReply.includes("study") || lowerReply.includes("learn")) {
+    suggestions.push("How much time should I spend on this?");
+  }
+
+  if (planId) {
+    suggestions.push("Suggest resources for this topic");
+    suggestions.push("What should I focus on next?");
+  } else {
+    suggestions.push("Help me create a study plan");
+  }
+
+  // Always include a clarification option
+  if (suggestions.length < 3) {
+    suggestions.push("Can you break this down further?");
+  }
+
+  return suggestions.slice(0, 3); // Return max 3 suggestions
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -99,10 +132,13 @@ ${planId ? "The student has a curriculum plan. You can reference it when providi
     const data = await response.json();
     const reply = data.choices[0].message.content;
 
+    // Generate contextual follow-up suggestions
+    const suggestions = generateSuggestions(message, reply, planId);
+
     console.log("Chat response generated successfully");
 
     return new Response(
-      JSON.stringify({ reply }),
+      JSON.stringify({ reply, suggestions }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
