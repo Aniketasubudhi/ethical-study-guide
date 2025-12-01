@@ -3,9 +3,32 @@ import { BookOpen, Shield, Target, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleStartBuilding = () => {
+    if (!isAuthenticated) {
+      navigate("/auth");
+    } else {
+      navigate("/generator");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
@@ -51,7 +74,7 @@ const Landing = () => {
             <Button
               size="lg"
               className="text-lg px-10 py-7 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all"
-              onClick={() => navigate("/generator")}
+              onClick={handleStartBuilding}
             >
               Start Building
             </Button>
@@ -129,7 +152,7 @@ const Landing = () => {
           <Button
             size="lg"
             className="text-lg px-12 py-7 rounded-full bg-white text-blue-600 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all font-semibold"
-            onClick={() => navigate("/generator")}
+            onClick={handleStartBuilding}
           >
             Get Started Now
           </Button>
