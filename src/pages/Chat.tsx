@@ -38,61 +38,27 @@ const Chat = () => {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [curriculumId, setCurriculumId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load user data and conversations
+  // Load curriculum and conversations from localStorage
   useEffect(() => {
-    const loadUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const stored = localStorage.getItem("curriculum");
+    if (stored) {
+      setCurriculum(JSON.parse(stored));
+    }
+
+    const storedConversations = localStorage.getItem("conversations");
+    if (storedConversations) {
+      const parsed = JSON.parse(storedConversations);
+      setConversations(parsed);
       
-      setUserId(user.id);
-
-      // Load user's most recent curriculum
-      const { data: curriculums } = await supabase
-        .from('curriculums')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (curriculums && curriculums.length > 0) {
-        const saved = curriculums[0];
-        setCurriculumId(saved.id);
-        setCurriculum({
-          planId: saved.plan_id,
-          duration_weeks: saved.duration_weeks,
-          modules: saved.modules as any
-        });
-      }
-
-      // Load user's conversations from database
-      const { data: dbConversations } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(20);
-
-      if (dbConversations && dbConversations.length > 0) {
-        const formatted = dbConversations.map(conv => ({
-          id: conv.id,
-          title: conv.title,
-          messages: conv.messages as unknown as Message[],
-          timestamp: new Date(conv.created_at).getTime()
-        }));
-        setConversations(formatted);
-        
-        // Load the most recent conversation
-        const mostRecent = formatted[0];
+      // Load the most recent conversation
+      if (parsed.length > 0) {
+        const mostRecent = parsed[0];
         setCurrentConversationId(mostRecent.id);
         setMessages(mostRecent.messages);
       }
-    };
-    
-    loadUserData();
+    }
   }, []);
 
   // Auto-scroll to bottom
@@ -100,10 +66,8 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Save conversation to database
-  const saveConversation = async (conversationId: string, updatedMessages: Message[]) => {
-    if (!userId) return;
-
+  // Save conversation to localStorage
+  const saveConversation = (conversationId: string, updatedMessages: Message[]) => {
     const title = updatedMessages[0]?.content.slice(0, 50) || "New Conversation";
     const conversation: Conversation = {
       id: conversationId,
@@ -112,40 +76,13 @@ const Chat = () => {
       timestamp: Date.now(),
     };
 
-    // Check if conversation exists
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('id')
-      .eq('id', conversationId)
-      .single();
-
-    if (existing) {
-      // Update existing conversation
-      await supabase
-        .from('conversations')
-        .update({
-          title,
-          messages: updatedMessages as any,
-          curriculum_id: curriculumId
-        })
-        .eq('id', conversationId);
-    } else {
-      // Insert new conversation
-      await supabase.from('conversations').insert({
-        id: conversationId,
-        user_id: userId,
-        title,
-        messages: updatedMessages as any,
-        curriculum_id: curriculumId
-      });
-    }
-
     const updatedConversations = [
       conversation,
       ...conversations.filter((c) => c.id !== conversationId),
-    ].slice(0, 20);
+    ].slice(0, 20); // Keep only last 20 conversations
 
     setConversations(updatedConversations);
+    localStorage.setItem("conversations", JSON.stringify(updatedConversations));
   };
 
   const startNewConversation = () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ export interface CurriculumModule {
   learning_outcomes: string[];
   activities: string[];
   resources: Resource[];
-  biasNote?: string;
 }
 
 export interface Curriculum {
@@ -38,7 +37,6 @@ const Generator = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     subjects: "",
@@ -46,37 +44,7 @@ const Generator = () => {
     hoursPerDay: "",
     goal: "",
     hardestSubject: "",
-    learningStyle: "Mixed",
-    includeBiasWarnings: false,
-    focusOnFairness: false,
   });
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        
-        // Load user's most recent curriculum
-        const { data: curriculums } = await supabase
-          .from('curriculums')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (curriculums && curriculums.length > 0) {
-          const saved = curriculums[0];
-          setCurriculum({
-            planId: saved.plan_id,
-            duration_weeks: saved.duration_weeks,
-            modules: saved.modules as any
-          });
-        }
-      }
-    };
-    getUser();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,47 +68,13 @@ const Generator = () => {
           hoursPerDay: parseInt(formData.hoursPerDay),
           goal: formData.goal,
           hardestSubject: formData.hardestSubject,
-          learningStyle: formData.learningStyle,
-          includeBiasWarnings: formData.includeBiasWarnings,
-          focusOnFairness: formData.focusOnFairness,
         },
       });
 
       if (error) throw error;
 
       setCurriculum(data);
-      
-      // Save to database
-      if (userId) {
-        const { error: dbError } = await supabase.from('curriculums').insert({
-          user_id: userId,
-          plan_id: data.planId,
-          title: `${formData.subjects} - ${formData.goal || 'Learning Plan'}`,
-          duration_weeks: data.duration_weeks,
-          subjects: formData.subjects.split(",").map((s: string) => s.trim()),
-          goal: formData.goal,
-          modules: data.modules
-        });
-
-        if (dbError) console.error('Error saving curriculum:', dbError);
-
-        // Create progress tracking entry
-        const { data: savedCurriculum } = await supabase
-          .from('curriculums')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('plan_id', data.planId)
-          .single();
-
-        if (savedCurriculum) {
-          await supabase.from('progress_tracking').upsert({
-            user_id: userId,
-            curriculum_id: savedCurriculum.id,
-            total_modules: data.modules.length,
-            completed_modules: 0
-          });
-        }
-      }
+      localStorage.setItem("curriculum", JSON.stringify(data));
       
       toast({
         title: "Curriculum Generated!",
@@ -259,61 +193,6 @@ const Generator = () => {
                       setFormData({ ...formData, hardestSubject: e.target.value })
                     }
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="learningStyle">
-                    Learning Style <span className="text-destructive">*</span>
-                  </Label>
-                  <select
-                    id="learningStyle"
-                    value={formData.learningStyle}
-                    onChange={(e) =>
-                      setFormData({ ...formData, learningStyle: e.target.value })
-                    }
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                    required
-                  >
-                    <option value="Visual">Visual</option>
-                    <option value="Reading/Writing">Reading/Writing</option>
-                    <option value="Hands-On">Hands-On</option>
-                    <option value="Video-Based">Video-Based</option>
-                    <option value="Mixed">Mixed</option>
-                  </select>
-                </div>
-
-                <div className="space-y-4 border border-border rounded-md p-4 bg-muted/20">
-                  <h3 className="font-semibold text-sm">Ethical AI Options</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="includeBiasWarnings"
-                      checked={formData.includeBiasWarnings}
-                      onChange={(e) =>
-                        setFormData({ ...formData, includeBiasWarnings: e.target.checked })
-                      }
-                      className="h-4 w-4 rounded border-primary text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    />
-                    <Label htmlFor="includeBiasWarnings" className="font-normal cursor-pointer">
-                      Include bias warnings in curriculum
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="focusOnFairness"
-                      checked={formData.focusOnFairness}
-                      onChange={(e) =>
-                        setFormData({ ...formData, focusOnFairness: e.target.checked })
-                      }
-                      className="h-4 w-4 rounded border-primary text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    />
-                    <Label htmlFor="focusOnFairness" className="font-normal cursor-pointer">
-                      Add module on Fair Learning Practices
-                    </Label>
-                  </div>
                 </div>
 
                 <Button

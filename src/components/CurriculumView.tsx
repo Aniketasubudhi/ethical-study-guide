@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, BookOpen, Link as LinkIcon, ExternalLink, Shield } from "lucide-react";
+import { CheckCircle2, BookOpen, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Curriculum } from "@/pages/Generator";
 
 interface CurriculumViewProps {
@@ -111,15 +111,6 @@ const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    )}
-
-                    {module.biasNote && (
-                      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300 flex items-center gap-2">
-                          <Shield className="h-4 w-4 flex-shrink-0" />
-                          <span className="font-medium">Bias Warning:</span> {module.biasNote}
-                        </p>
                       </div>
                     )}
                   </div>
