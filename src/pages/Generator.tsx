@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ const Generator = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     subjects: "",
@@ -49,6 +50,33 @@ const Generator = () => {
     includeBiasWarnings: false,
     focusOnFairness: false,
   });
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        
+        // Load user's most recent curriculum
+        const { data: curriculums } = await supabase
+          .from('curriculums')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (curriculums && curriculums.length > 0) {
+          const saved = curriculums[0];
+          setCurriculum({
+            planId: saved.plan_id,
+            duration_weeks: saved.duration_weeks,
+            modules: saved.modules as any
+          });
+        }
+      }
+    };
+    getUser();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +109,38 @@ const Generator = () => {
       if (error) throw error;
 
       setCurriculum(data);
-      localStorage.setItem("curriculum", JSON.stringify(data));
+      
+      // Save to database
+      if (userId) {
+        const { error: dbError } = await supabase.from('curriculums').insert({
+          user_id: userId,
+          plan_id: data.planId,
+          title: `${formData.subjects} - ${formData.goal || 'Learning Plan'}`,
+          duration_weeks: data.duration_weeks,
+          subjects: formData.subjects.split(",").map((s: string) => s.trim()),
+          goal: formData.goal,
+          modules: data.modules
+        });
+
+        if (dbError) console.error('Error saving curriculum:', dbError);
+
+        // Create progress tracking entry
+        const { data: savedCurriculum } = await supabase
+          .from('curriculums')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('plan_id', data.planId)
+          .single();
+
+        if (savedCurriculum) {
+          await supabase.from('progress_tracking').upsert({
+            user_id: userId,
+            curriculum_id: savedCurriculum.id,
+            total_modules: data.modules.length,
+            completed_modules: 0
+          });
+        }
+      }
       
       toast({
         title: "Curriculum Generated!",

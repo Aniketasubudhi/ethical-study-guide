@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BookOpen, Shield, Target, MessageCircle, Send, History, TrendingUp } from "lucide-react";
+import { BookOpen, Shield, Target, MessageCircle, Send, History, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 const Landing = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -21,6 +22,17 @@ const Landing = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
     });
+
+    // Fetch user count
+    const fetchUserCount = async () => {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      if (count) setUserCount(count);
+    };
+
+    fetchUserCount();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -72,6 +84,13 @@ const Landing = () => {
             Generate personalized, transparent, and bias-free educational curricula. 
             Learn with confidence knowing your path is fair and credible.
           </p>
+
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <Users className="h-5 w-5 text-blue-600" />
+            <span className="text-lg font-semibold text-blue-600">
+              {userCount.toLocaleString()}+ learners have joined!
+            </span>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
