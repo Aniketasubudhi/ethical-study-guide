@@ -56,6 +56,16 @@ const Landing = () => {
               Open Chat Assistant
             </Button>
           </div>
+
+          <div className="mt-8">
+            <Button
+              variant="ghost"
+              className="text-sm"
+              onClick={() => navigate("/auth")}
+            >
+              Sign In / Register
+            </Button>
+          </div>
         </motion.div>
       </header>
 

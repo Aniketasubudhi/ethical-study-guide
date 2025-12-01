@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { subjects, durationWeeks, hoursPerDay, goal, hardestSubject } =
+    const { subjects, durationWeeks, hoursPerDay, goal, hardestSubject, learningStyle, includeBiasWarnings, focusOnFairness } =
       await req.json();
 
     console.log("Generating curriculum with params:", {
@@ -19,6 +19,9 @@ Deno.serve(async (req) => {
       hoursPerDay,
       goal,
       hardestSubject,
+      learningStyle,
+      includeBiasWarnings,
+      focusOnFairness,
     });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -32,19 +35,24 @@ Deno.serve(async (req) => {
 Subjects: ${subjects.join(", ")}
 Study Time: ${hoursPerDay} hours per day
 Academic Goal: ${goal || "General mastery"}
+Learning Style: ${learningStyle}
 ${hardestSubject ? `Hardest Subject (needs extra focus): ${hardestSubject}` : ""}
+${includeBiasWarnings ? "IMPORTANT: Include a 'biasNote' field in each module with text 'Bias evaluation pending'" : ""}
+${focusOnFairness ? "IMPORTANT: Add a final module titled 'Fair Learning Practices' covering ethical considerations" : ""}
 
 CRITICAL INSTRUCTIONS:
 1. Create exactly ${durationWeeks} weekly modules
 2. Distribute subjects evenly across the weeks
 3. Include progressive learning - start with fundamentals, build to advanced topics
-4. For each week, provide:
+4. Tailor activities to the ${learningStyle} learning style
+5. For each week, provide:
    - Week number
    - Subject focus
    - Specific topic title
    - 3-5 clear learning outcomes
    - 3-5 practical activities (exercises, readings, practice problems)
    - 3-5 specific resources with ACTUAL WORKING URLs (mix of free and paid)
+   ${includeBiasWarnings ? '- A biasNote field with the text "Bias evaluation pending"' : ""}
 
 RESOURCE REQUIREMENTS:
 - Each resource must be a JSON object with "title", "url", and "type" (free/paid)
@@ -77,7 +85,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
           "url": "https://actual-url.com",
           "type": "paid"
         }
-      ]
+      ]${includeBiasWarnings ? ',\n      "biasNote": "Bias evaluation pending"' : ""}
     }
   ]
 }`;
@@ -138,6 +146,30 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     // Ensure planId exists
     if (!curriculum.planId) {
       curriculum.planId = `plan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Add Fair Learning Practices module if requested
+    if (focusOnFairness && curriculum.modules) {
+      curriculum.modules.push({
+        week: curriculum.modules.length + 1,
+        subject: "Ethics",
+        title: "Fair Learning Practices",
+        learning_outcomes: [
+          "Understand the importance of ethical learning practices",
+          "Recognize bias in educational materials and AI-generated content",
+          "Apply fairness principles to personal learning journey"
+        ],
+        activities: [
+          "Reflect on potential biases in learning materials",
+          "Evaluate AI-generated content critically",
+          "Develop strategies for inclusive and fair learning"
+        ],
+        resources: [
+          { title: "Ethics in AI Education", url: "https://ethics.org.uk/education", type: "free" },
+          { title: "Understanding Bias in Learning", url: "https://www.coursera.org/learn/ethics-technology-engineering", type: "paid" }
+        ],
+        ...(includeBiasWarnings && { biasNote: "Bias evaluation pending" })
+      });
     }
 
     console.log("Successfully generated curriculum");
