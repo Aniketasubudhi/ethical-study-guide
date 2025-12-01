@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, BookOpen, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, BookOpen, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Curriculum } from "@/pages/Generator";
 
 interface CurriculumViewProps {
@@ -88,11 +88,26 @@ const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
                           <LinkIcon className="h-4 w-4" />
                           Resources
                         </h4>
-                        <ul className="space-y-1">
+                        <ul className="space-y-2">
                           {module.resources.map((resource, i) => (
-                            <li key={i} className="text-sm pl-6 relative">
-                              <span className="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-accent-foreground" />
-                              {resource}
+                            <li key={i} className="text-sm">
+                              <a
+                                href={resource.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors group"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                                <span className="flex-1 group-hover:text-primary">
+                                  {resource.title}
+                                </span>
+                                <Badge
+                                  variant={resource.type === "free" ? "secondary" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {resource.type}
+                                </Badge>
+                              </a>
                             </li>
                           ))}
                         </ul>

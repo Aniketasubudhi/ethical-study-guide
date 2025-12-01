@@ -46,7 +46,14 @@ CRITICAL INSTRUCTIONS:
    - Specific topic title
    - 3-5 clear learning outcomes
    - 3-5 practical activities (exercises, readings, practice problems)
-   - 2-3 specific resources (textbooks, online courses, practice sites)
+   - 3-5 specific resources with ACTUAL WORKING URLs (mix of free and paid)
+
+RESOURCE REQUIREMENTS:
+- Each resource must be a JSON object with "title", "url", and "type" (free/paid)
+- Include real, working URLs to actual educational resources
+- Mix free resources (Khan Academy, MIT OpenCourseWare, YouTube, etc.) with paid options (Udemy, Coursera, textbooks)
+- For textbooks, include Amazon or publisher links
+- Ensure all URLs are valid and currently accessible
 
 ${hardestSubject ? `Give extra attention and more practice activities for ${hardestSubject}.` : ""}
 
@@ -61,7 +68,18 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
       "title": "Specific Topic Title",
       "learning_outcomes": ["outcome 1", "outcome 2", "outcome 3"],
       "activities": ["activity 1", "activity 2", "activity 3"],
-      "resources": ["resource 1", "resource 2"]
+      "resources": [
+        {
+          "title": "Resource Name",
+          "url": "https://actual-url.com",
+          "type": "free"
+        },
+        {
+          "title": "Paid Course Name",
+          "url": "https://actual-url.com",
+          "type": "paid"
+        }
+      ]
     }
   ]
 }`;

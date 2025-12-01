@@ -11,13 +11,19 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import CurriculumView from "@/components/CurriculumView";
 
+export interface Resource {
+  title: string;
+  url: string;
+  type: "free" | "paid";
+}
+
 export interface CurriculumModule {
   week: number;
   subject: string;
   title: string;
   learning_outcomes: string[];
   activities: string[];
-  resources: string[];
+  resources: Resource[];
 }
 
 export interface Curriculum {
