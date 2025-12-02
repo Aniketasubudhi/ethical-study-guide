@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ export interface CurriculumModule {
 export interface Curriculum {
   planId: string;
   duration_weeks: number;
+  learningPath?: string;
   modules: CurriculumModule[];
 }
 
@@ -46,12 +48,13 @@ const Generator = () => {
     hoursPerDay: "",
     goal: "",
     hardestSubject: "",
+    learningPath: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.subjects || !formData.durationWeeks || !formData.hoursPerDay) {
+    if (!formData.subjects || !formData.durationWeeks || !formData.hoursPerDay || !formData.learningPath) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -70,6 +73,7 @@ const Generator = () => {
           hoursPerDay: parseInt(formData.hoursPerDay),
           goal: formData.goal,
           hardestSubject: formData.hardestSubject,
+          learningPath: formData.learningPath,
           userId: user?.id || null,
         },
       });
@@ -196,6 +200,29 @@ const Generator = () => {
                       setFormData({ ...formData, hardestSubject: e.target.value })
                     }
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="learningPath">
+                    Learning Path <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.learningPath}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, learningPath: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger id="learningPath">
+                      <SelectValue placeholder="Select your preferred learning style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Video">Video</SelectItem>
+                      <SelectItem value="Article">Article</SelectItem>
+                      <SelectItem value="Question & Practice">Question & Practice</SelectItem>
+                      <SelectItem value="Mixed">Mixed (Best Resources)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button
