@@ -1,16 +1,61 @@
 import { motion } from "framer-motion";
-import { BookOpen, MessageSquare, GraduationCap, Shield, Brain, Target } from "lucide-react";
+import { BookOpen, MessageSquare, GraduationCap, Shield, Brain, Target, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-background">
+      {/* Navigation */}
+      <nav className="container mx-auto px-4 pt-6 pb-4">
+        <div className="flex justify-end gap-3">
+          {user ? (
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/login")}
+                className="gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                Login
+              </Button>
+              <Button
+                onClick={() => navigate("/register")}
+                className="gap-2 bg-gradient-primary"
+              >
+                Register
+              </Button>
+            </>
+          )}
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <header className="container mx-auto px-4 pt-20 pb-16">
+      <header className="container mx-auto px-4 pt-12 pb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
