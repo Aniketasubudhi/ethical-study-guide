@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { message, planId, conversationHistory } = await req.json();
+    const { message, planId, conversationHistory, conversationId, userId } = await req.json();
 
     console.log("Chat request:", { message, planId, historyLength: conversationHistory?.length });
 
@@ -136,6 +136,63 @@ ${planId ? "The student has a curriculum plan. You can reference it when providi
     const suggestions = generateSuggestions(message, reply, planId);
 
     console.log("Chat response generated successfully");
+
+    // Save conversation to database if userId and conversationId are provided
+    if (userId && conversationId) {
+      try {
+        const { createClient } = await import("jsr:@supabase/supabase-js@2");
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          // Build updated messages array
+          const updatedMessages = [
+            ...(conversationHistory || []),
+            { role: "user", content: message },
+            { role: "assistant", content: reply }
+          ];
+
+          // Check if conversation exists
+          const { data: existing } = await supabase
+            .from("conversations")
+            .select("id")
+            .eq("id", conversationId)
+            .single();
+
+          const title = updatedMessages[0]?.content.slice(0, 50) || "New Conversation";
+
+          if (existing) {
+            // Update existing conversation
+            await supabase
+              .from("conversations")
+              .update({
+                messages: updatedMessages,
+                title: title,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", conversationId);
+          } else {
+            // Create new conversation
+            await supabase
+              .from("conversations")
+              .insert({
+                id: conversationId,
+                user_id: userId,
+                title: title,
+                messages: updatedMessages,
+                curriculum_id: planId
+              });
+          }
+          
+          console.log("Conversation saved to database");
+        }
+      } catch (dbError) {
+        console.error("Error saving conversation to database:", dbError);
+        // Don't fail the request if DB save fails
+      }
+    }
 
     return new Response(
       JSON.stringify({ reply, suggestions }),
