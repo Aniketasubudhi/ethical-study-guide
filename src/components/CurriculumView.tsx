@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, BookOpen, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Curriculum } from "@/pages/Generator";
 
@@ -9,6 +12,23 @@ interface CurriculumViewProps {
 }
 
 const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
+  const [completedModules, setCompletedModules] = useState<Set<number>>(new Set());
+  
+  const toggleModule = (index: number) => {
+    setCompletedModules((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const progressPercentage = (completedModules.size / curriculum.modules.length) * 100;
+  const isComplete = completedModules.size === curriculum.modules.length;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -22,6 +42,33 @@ const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
         </p>
       </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 p-6 rounded-lg bg-card border"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm">Course Progress</h3>
+          <span className="text-sm text-muted-foreground">
+            {completedModules.size} of {curriculum.modules.length} weeks completed
+          </span>
+        </div>
+        <Progress 
+          value={progressPercentage} 
+          className={`h-3 transition-all duration-500 ${isComplete ? 'animate-pulse' : ''}`}
+        />
+        {isComplete && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-3 flex items-center gap-2 text-sm text-primary font-medium"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Congratulations! You've completed the entire curriculum!
+          </motion.div>
+        )}
+      </motion.div>
+
       <div className="space-y-6">
         {curriculum.modules.map((module, index) => (
           <motion.div
@@ -30,11 +77,17 @@ const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="p-6 shadow-card hover:shadow-soft transition-all">
+            <Card className={`p-6 shadow-card hover:shadow-soft transition-all ${
+              completedModules.has(index) ? 'bg-primary/5 border-primary/20' : ''
+            }`}>
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-display font-bold text-primary">
+                  <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                    completedModules.has(index) 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-primary/10 text-primary'
+                  }`}>
+                    <span className="font-display font-bold">
                       {module.week}
                     </span>
                   </div>
@@ -114,6 +167,14 @@ const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                <div className="flex-shrink-0 ml-4">
+                  <Checkbox
+                    checked={completedModules.has(index)}
+                    onCheckedChange={() => toggleModule(index)}
+                    className="h-5 w-5"
+                  />
                 </div>
               </div>
             </Card>
