@@ -4,6 +4,45 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to fetch real YouTube videos
+async function fetchYouTubeVideos(query: string, maxResults: number = 3) {
+  const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
+  if (!YOUTUBE_API_KEY) {
+    console.warn("YOUTUBE_API_KEY not configured, skipping YouTube fetch");
+    return [];
+  }
+
+  try {
+    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("type", "video");
+    url.searchParams.set("q", query);
+    url.searchParams.set("maxResults", maxResults.toString());
+    url.searchParams.set("key", YOUTUBE_API_KEY);
+
+    console.log(`Fetching YouTube videos for: ${query}`);
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      console.error("YouTube API error:", response.status, await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+    const videos = data.items?.map((item: any) => ({
+      title: item.snippet.title,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+      type: "free"
+    })) || [];
+    
+    console.log(`Found ${videos.length} YouTube videos`);
+    return videos;
+  } catch (error) {
+    console.error("Error fetching YouTube videos:", error);
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -174,6 +213,31 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     curriculum.learningPath = learningPath;
 
     console.log("Successfully generated curriculum");
+
+    // Enhance with real YouTube videos if learning path is Video or Mixed
+    if (learningPath === "Video" || learningPath === "Mixed") {
+      console.log(`Enhancing curriculum with YouTube videos (path: ${learningPath})`);
+      
+      for (const module of curriculum.modules) {
+        // Construct search query from subject and module title
+        const query = `${subjects.join(" ")} ${module.title} tutorial`;
+        const youtubeVideos = await fetchYouTubeVideos(query, 3);
+        
+        if (youtubeVideos.length > 0) {
+          if (learningPath === "Video") {
+            // Replace all resources with YouTube videos for Video path
+            module.resources = youtubeVideos;
+          } else if (learningPath === "Mixed") {
+            // Combine YouTube videos with existing resources for Mixed path
+            // Keep 2 AI-generated resources and add YouTube videos
+            const existingResources = module.resources?.slice(0, 2) || [];
+            module.resources = [...youtubeVideos, ...existingResources];
+          }
+        }
+      }
+      
+      console.log("YouTube enhancement complete");
+    }
 
     // Save curriculum to database if userId is provided
     if (userId) {
