@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { subjects, durationWeeks, hoursPerDay, goal, hardestSubject, userId } =
+    const { subjects, durationWeeks, hoursPerDay, goal, hardestSubject, learningPath, userId } =
       await req.json();
 
     console.log("Generating curriculum with params:", {
@@ -19,11 +19,40 @@ Deno.serve(async (req) => {
       hoursPerDay,
       goal,
       hardestSubject,
+      learningPath,
     });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Build resource guidance based on learning path
+    let resourceGuidance = "";
+    if (learningPath === "Video") {
+      resourceGuidance = `
+LEARNING PATH: Video-based learning
+- Prioritize video resources (YouTube, Coursera, Udemy, Khan Academy videos, MIT OCW lectures)
+- Include mostly video tutorials, recorded lectures, and visual demonstrations
+- Limit text-based resources to supplementary materials only`;
+    } else if (learningPath === "Article") {
+      resourceGuidance = `
+LEARNING PATH: Article/Text-based learning
+- Prioritize written resources (articles, blog posts, documentation, textbooks, PDFs)
+- Include mostly reading materials, written tutorials, and reference pages
+- Limit video resources to supplementary materials only`;
+    } else if (learningPath === "Question & Practice") {
+      resourceGuidance = `
+LEARNING PATH: Practice-based learning
+- Prioritize practice resources (problem sets, coding challenges, quiz platforms, exercise websites)
+- Include mostly interactive practice sites (LeetCode, HackerRank, practice workbooks, problem banks)
+- Focus on hands-on application and problem-solving resources`;
+    } else if (learningPath === "Mixed") {
+      resourceGuidance = `
+LEARNING PATH: Mixed/Balanced learning
+- Provide a balanced mix of ALL resource types
+- Include videos, articles, AND practice resources for each module
+- This should give the BEST overall resources regardless of format`;
     }
 
     // Build the prompt for curriculum generation
@@ -33,6 +62,7 @@ Subjects: ${subjects.join(", ")}
 Study Time: ${hoursPerDay} hours per day
 Academic Goal: ${goal || "General mastery"}
 ${hardestSubject ? `Hardest Subject (needs extra focus): ${hardestSubject}` : ""}
+${resourceGuidance}
 
 CRITICAL INSTRUCTIONS:
 1. Create exactly ${durationWeeks} weekly modules
@@ -139,6 +169,9 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     if (!curriculum.planId) {
       curriculum.planId = `plan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
+
+    // Add learning path to curriculum
+    curriculum.learningPath = learningPath;
 
     console.log("Successfully generated curriculum");
 

@@ -39,6 +39,11 @@ const CurriculumView = ({ curriculum }: CurriculumViewProps) => {
         <h1 className="font-display text-4xl font-bold mb-2">Your Study Plan</h1>
         <p className="text-muted-foreground text-lg">
           {curriculum.duration_weeks} week personalized curriculum
+          {curriculum.learningPath && (
+            <span className="ml-2">
+              • Learning Path: <span className="font-medium text-foreground">{curriculum.learningPath}</span>
+            </span>
+          )}
         </p>
       </div>
 
