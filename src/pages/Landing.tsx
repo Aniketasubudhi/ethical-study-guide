@@ -1,10 +1,16 @@
 import { motion } from "framer-motion";
-import { BookOpen, MessageSquare, GraduationCap, Shield, Brain, Target, LogOut, LogIn } from "lucide-react";
+import { BookOpen, MessageSquare, GraduationCap, Shield, Brain, Target, LogOut, LogIn, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -25,14 +31,34 @@ const Landing = () => {
       <nav className="container mx-auto px-4 pt-6 pb-4">
         <div className="flex justify-end gap-3">
           {user ? (
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <History className="h-4 w-4" />
+                    History
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate("/history/chat")}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Chat History
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/history/curriculum")}>
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Curriculum History
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Button

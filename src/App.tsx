@@ -8,6 +8,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Generator from "./pages/Generator";
 import Chat from "./pages/Chat";
+import ChatHistory from "./pages/ChatHistory";
+import CurriculumHistory from "./pages/CurriculumHistory";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -38,6 +40,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Chat />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/history/chat" 
+              element={
+                <ProtectedRoute>
+                  <ChatHistory />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/history/curriculum" 
+              element={
+                <ProtectedRoute>
+                  <CurriculumHistory />
                 </ProtectedRoute>
               } 
             />

@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { subjects, durationWeeks, hoursPerDay, goal, hardestSubject } =
+    const { subjects, durationWeeks, hoursPerDay, goal, hardestSubject, userId } =
       await req.json();
 
     console.log("Generating curriculum with params:", {
@@ -141,6 +141,36 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     }
 
     console.log("Successfully generated curriculum");
+
+    // Save curriculum to database if userId is provided
+    if (userId) {
+      try {
+        const { createClient } = await import("jsr:@supabase/supabase-js@2");
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          await supabase
+            .from("curriculums")
+            .insert({
+              user_id: userId,
+              plan_id: curriculum.planId,
+              title: `${subjects.join(", ")} - ${durationWeeks} weeks`,
+              subjects: subjects,
+              goal: goal || "General mastery",
+              duration_weeks: durationWeeks,
+              modules: curriculum.modules
+            });
+          
+          console.log("Curriculum saved to database");
+        }
+      } catch (dbError) {
+        console.error("Error saving curriculum to database:", dbError);
+        // Don't fail the request if DB save fails
+      }
+    }
 
     return new Response(JSON.stringify(curriculum), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

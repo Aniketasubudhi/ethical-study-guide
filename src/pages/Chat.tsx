@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Curriculum } from "@/pages/Generator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -30,6 +31,7 @@ interface AssistantResponse {
 const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,53 +42,58 @@ const Chat = () => {
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load curriculum and conversations from localStorage
+  // Load curriculum and conversations from database
   useEffect(() => {
-    const stored = localStorage.getItem("curriculum");
-    if (stored) {
-      setCurriculum(JSON.parse(stored));
-    }
-
-    const storedConversations = localStorage.getItem("conversations");
-    if (storedConversations) {
-      const parsed = JSON.parse(storedConversations);
-      setConversations(parsed);
-      
-      // Load the most recent conversation
-      if (parsed.length > 0) {
-        const mostRecent = parsed[0];
-        setCurrentConversationId(mostRecent.id);
-        setMessages(mostRecent.messages);
+    const loadData = async () => {
+      // Load curriculum from localStorage (keep existing behavior)
+      const stored = localStorage.getItem("curriculum");
+      if (stored) {
+        setCurriculum(JSON.parse(stored));
       }
-    }
-  }, []);
+
+      // Load conversations from database if user is authenticated
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from("conversations")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("updated_at", { ascending: false })
+            .limit(20);
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            const formattedConversations: Conversation[] = data.map((conv) => ({
+              id: conv.id,
+              title: conv.title,
+              messages: (conv.messages as any) as Message[],
+              timestamp: new Date(conv.updated_at || conv.created_at || "").getTime(),
+            }));
+
+            setConversations(formattedConversations);
+
+            // Load the most recent conversation
+            const mostRecent = formattedConversations[0];
+            setCurrentConversationId(mostRecent.id);
+            setMessages(mostRecent.messages);
+          }
+        } catch (error) {
+          console.error("Error loading conversations:", error);
+        }
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Save conversation to localStorage
-  const saveConversation = (conversationId: string, updatedMessages: Message[]) => {
-    const title = updatedMessages[0]?.content.slice(0, 50) || "New Conversation";
-    const conversation: Conversation = {
-      id: conversationId,
-      title,
-      messages: updatedMessages,
-      timestamp: Date.now(),
-    };
-
-    const updatedConversations = [
-      conversation,
-      ...conversations.filter((c) => c.id !== conversationId),
-    ].slice(0, 20); // Keep only last 20 conversations
-
-    setConversations(updatedConversations);
-    localStorage.setItem("conversations", JSON.stringify(updatedConversations));
-  };
-
   const startNewConversation = () => {
-    const newId = `conv_${Date.now()}`;
+    const newId = crypto.randomUUID();
     setCurrentConversationId(newId);
     setMessages([]);
     setSuggestions([]);
@@ -104,8 +111,17 @@ const Chat = () => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || loading) return;
 
+    if (!user) {
+      toast({
+        title: "Not Authenticated",
+        description: "Please log in to use the chat assistant.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Start new conversation if none exists
-    const conversationId = currentConversationId || `conv_${Date.now()}`;
+    const conversationId = currentConversationId || crypto.randomUUID();
     if (!currentConversationId) {
       setCurrentConversationId(conversationId);
     }
@@ -123,6 +139,8 @@ const Chat = () => {
           message: textToSend,
           planId: curriculum?.planId || null,
           conversationHistory: messages,
+          conversationId: conversationId,
+          userId: user.id,
         },
       });
 
@@ -141,8 +159,20 @@ const Chat = () => {
         setSuggestions(response.suggestions);
       }
 
-      // Save conversation
-      saveConversation(conversationId, finalMessages);
+      // Update local conversations list
+      const conversation: Conversation = {
+        id: conversationId,
+        title: finalMessages[0]?.content.slice(0, 50) || "New Conversation",
+        messages: finalMessages,
+        timestamp: Date.now(),
+      };
+
+      const updatedConversations = [
+        conversation,
+        ...conversations.filter((c) => c.id !== conversationId),
+      ].slice(0, 20);
+
+      setConversations(updatedConversations);
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
