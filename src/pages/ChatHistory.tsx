@@ -18,8 +18,7 @@ interface Conversation {
   id: string;
   title: string;
   messages: Message[];
-  created_at: string;
-  updated_at: string;
+  timestamp: number;
 }
 
 const ChatHistory = () => {
@@ -55,8 +54,7 @@ const ChatHistory = () => {
         id: conv.id,
         title: conv.title,
         messages: (conv.messages as any) as Message[],
-        created_at: conv.created_at || "",
-        updated_at: conv.updated_at || "",
+        timestamp: new Date(conv.updated_at || conv.created_at || "").getTime(),
       }));
 
       setConversations(formattedConversations);
@@ -108,8 +106,8 @@ const ChatHistory = () => {
               </Button>
             </div>
             <div className="text-sm text-muted-foreground mb-4">
-              Created: {new Date(selectedConversation.created_at).toLocaleDateString()} at{" "}
-              {new Date(selectedConversation.created_at).toLocaleTimeString()}
+              Last updated: {new Date(selectedConversation.timestamp).toLocaleDateString()} at{" "}
+              {new Date(selectedConversation.timestamp).toLocaleTimeString()}
             </div>
             <ScrollArea className="h-[600px] pr-4">
               <div className="space-y-4">
@@ -172,8 +170,8 @@ const ChatHistory = () => {
                         </p>
                       </div>
                       <div className="text-right text-sm text-muted-foreground">
-                        <div>{new Date(conversation.updated_at).toLocaleDateString()}</div>
-                        <div>{new Date(conversation.updated_at).toLocaleTimeString()}</div>
+                        <div>{new Date(conversation.timestamp).toLocaleDateString()}</div>
+                        <div>{new Date(conversation.timestamp).toLocaleTimeString()}</div>
                       </div>
                     </div>
                   </Card>
