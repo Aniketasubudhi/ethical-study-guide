@@ -16,12 +16,47 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetComplete, setResetComplete] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
+    // Handle the password reset flow from the email link
+    const handlePasswordReset = async () => {
+      // Check if there's a hash fragment with recovery token
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+
+      if (accessToken && type === 'recovery') {
+        // Set the session using the recovery token
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: hashParams.get('refresh_token') || '',
+        });
+
+        if (error) {
+          toast({
+            title: "Invalid or Expired Link",
+            description: "Please request a new password reset link.",
+            variant: "destructive",
+          });
+          navigate("/forgot-password");
+          return;
+        }
+
+        setIsValidSession(true);
+        setCheckingSession(false);
+        // Clear the hash from the URL
+        window.history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+
+      // Check if we already have a valid session
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (session) {
+        setIsValidSession(true);
+        setCheckingSession(false);
+      } else {
         toast({
           title: "Invalid or Expired Link",
           description: "Please request a new password reset link.",
@@ -30,7 +65,8 @@ const ResetPassword = () => {
         navigate("/forgot-password");
       }
     };
-    checkSession();
+
+    handlePasswordReset();
   }, [navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +129,21 @@ const ResetPassword = () => {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-gradient-secondary flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Verifying reset link...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (resetComplete) {
     return (
