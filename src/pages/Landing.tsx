@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import CardSwap, { Card as SwapCard } from "@/components/ui/CardSwap";
+import MagicBento from "@/components/ui/MagicBento";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -195,36 +196,42 @@ const Landing = () => {
                 title: "Personalized Curricula",
                 description: "Generate custom study plans tailored to your subjects, goals, and available time.",
                 color: "primary",
+                useMagic: true,
               },
               {
                 icon: Brain,
                 title: "AI Study Assistant",
                 description: "Get explanations, clarifications, and guidance from an ethical AI that helps you understand concepts.",
                 color: "primary",
+                useMagic: true,
               },
               {
                 icon: Target,
                 title: "Progress Tracking",
                 description: "Monitor your learning journey with detailed progress tracking and insights.",
                 color: "primary",
+                useMagic: false,
               },
               {
                 icon: Shield,
                 title: "Ethical Guidelines",
                 description: "Built with principles that encourage understanding over shortcuts. No exam answers, only learning support.",
                 color: "primary",
+                useMagic: true,
               },
               {
                 icon: Clock,
                 title: "Flexible Scheduling",
                 description: "Plan your study sessions around your availability with smart time management.",
                 color: "primary",
+                useMagic: false,
               },
               {
                 icon: MessageSquare,
                 title: "Interactive Chat",
                 description: "Have natural conversations about your studies and get contextual help when you need it.",
                 color: "primary",
+                useMagic: true,
               },
             ].map((feature, index) => (
               <motion.div
@@ -234,13 +241,35 @@ const Landing = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 h-full hover-lift bg-card border-border">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-display text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-                </Card>
+                {feature.useMagic ? (
+                  <MagicBento
+                    textAutoHide={false}
+                    enableStars={true}
+                    enableSpotlight={true}
+                    enableBorderGlow={true}
+                    enableTilt={true}
+                    enableMagnetism={false}
+                    clickEffect={true}
+                    spotlightRadius={300}
+                    particleCount={8}
+                    glowColor="132, 0, 255"
+                    className="p-6 h-full bg-card border-border"
+                  >
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <feature.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-display text-lg font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+                  </MagicBento>
+                ) : (
+                  <Card className="p-6 h-full hover-lift bg-card border-border">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <feature.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-display text-lg font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+                  </Card>
+                )}
               </motion.div>
             ))}
           </div>
