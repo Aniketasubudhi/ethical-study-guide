@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import FluidGlass from "./components/ui/FluidGlass";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
@@ -26,6 +27,16 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <FluidGlass 
+          mode="lens"
+          lensProps={{
+            scale: 0.25,
+            ior: 1.15,
+            thickness: 5,
+            chromaticAberration: 0.1,
+            anisotropy: 0.01
+          }}
+        />
         <BrowserRouter>
           <AuthProvider>
             <Routes>
