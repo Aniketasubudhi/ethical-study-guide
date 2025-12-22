@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Curriculum } from "@/pages/Generator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
+import GradualBlur from "@/components/ui/GradualBlur";
 
 interface Message {
   role: "user" | "assistant";
@@ -339,50 +340,53 @@ const Chat = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto mb-4 space-y-4">
-            {messages.length === 0 && (
-              <div className="text-center py-12">
-                <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  Hi! I'm your ethical AI learning assistant. Ask me questions about your studies,
-                  and I'll help guide your learning journey.
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Remember: I'm here to help you understand, not to provide answers to exams or assignments.
-                </p>
-              </div>
-            )}
+          <div className="relative flex-1 overflow-hidden">
+            <div className="absolute inset-0 overflow-y-auto pb-8 space-y-4">
+              {messages.length === 0 && (
+                <div className="text-center py-12">
+                  <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    Hi! I'm your ethical AI learning assistant. Ask me questions about your studies,
+                    and I'll help guide your learning journey.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Remember: I'm here to help you understand, not to provide answers to exams or assignments.
+                  </p>
+                </div>
+              )}
 
-            {messages.map((message, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[80%] p-4 rounded-lg ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+              {messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                </div>
-              </motion.div>
-            ))}
+                  <div
+                    className={`max-w-[80%] p-4 rounded-lg ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                </motion.div>
+              ))}
 
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-muted p-4 rounded-lg">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted p-4 rounded-lg">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} />
+            </div>
+            <GradualBlur direction="bottom" intensity="medium" />
           </div>
 
           {/* Contextual Suggestions */}

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -8,21 +8,53 @@ import {
   ArrowRight, 
   Clock,
   Target,
-  TrendingUp
+  TrendingUp,
+  Shield,
+  GraduationCap,
+  Brain
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AppLayout from "@/components/layouts/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import CountUp from "@/components/ui/CountUp";
+import CardSwap, { Card as SwapCard } from "@/components/ui/CardSwap";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    curriculums: 0,
+    chats: 0,
+    hoursEstimate: 0,
+  });
 
   useEffect(() => {
     if (!user) {
       navigate("/login");
+      return;
     }
+
+    // Fetch real stats from database
+    const fetchStats = async () => {
+      try {
+        const [curriculumsRes, chatsRes] = await Promise.all([
+          supabase.from("curriculums").select("id", { count: "exact" }).eq("user_id", user.id),
+          supabase.from("conversations").select("id", { count: "exact" }).eq("user_id", user.id),
+        ]);
+
+        setStats({
+          curriculums: curriculumsRes.count || 0,
+          chats: chatsRes.count || 0,
+          hoursEstimate: (curriculumsRes.count || 0) * 2, // Estimate 2 hours saved per curriculum
+        });
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      }
+    };
+
+    fetchStats();
   }, [user, navigate]);
 
   const quickActions = [
@@ -49,11 +81,11 @@ const Dashboard = () => {
     },
   ];
 
-  const stats = [
-    { label: "Study Plans", value: "—", icon: BookOpen },
-    { label: "Chat Sessions", value: "—", icon: MessageSquare },
-    { label: "Hours Saved", value: "—", icon: Clock },
-    { label: "Goals Completed", value: "—", icon: Target },
+  const statCards = [
+    { label: "Study Plans", value: stats.curriculums, icon: BookOpen },
+    { label: "Chat Sessions", value: stats.chats, icon: MessageSquare },
+    { label: "Hours Saved", value: stats.hoursEstimate, icon: Clock },
+    { label: "Goals Tracked", value: stats.curriculums, icon: Target },
   ];
 
   return (
@@ -114,20 +146,63 @@ const Dashboard = () => {
         >
           <h2 className="font-display text-lg font-semibold mb-4">Your Progress</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat, index) => (
+            {statCards.map((stat, index) => (
               <Card key={index} className="p-5">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                     <stat.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-2xl font-bold">
+                      <CountUp end={stat.value} duration={1500} delay={index * 100} />
+                    </p>
                     <p className="text-xs text-muted-foreground">{stat.label}</p>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
+        </motion.div>
+
+        {/* Highlights Carousel */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <h2 className="font-display text-lg font-semibold mb-4">What You Can Build</h2>
+          <CardSwap
+            interval={4500}
+            cards={[
+              <SwapCard className="text-center py-8">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Shield className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="font-display text-lg font-semibold mb-2">Ethics-First Learning</h3>
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  Create curricula that prioritize understanding over memorization, with AI guidance that respects academic integrity.
+                </p>
+              </SwapCard>,
+              <SwapCard className="text-center py-8">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <GraduationCap className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="font-display text-lg font-semibold mb-2">Personalized Paths</h3>
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  Get study plans tailored to your subjects, time availability, and learning goals.
+                </p>
+              </SwapCard>,
+              <SwapCard className="text-center py-8">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Brain className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="font-display text-lg font-semibold mb-2">AI Study Companion</h3>
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  Chat with an AI that explains concepts, answers questions, and guides your learning journey.
+                </p>
+              </SwapCard>,
+            ]}
+          />
         </motion.div>
 
         {/* Recent Activity */}

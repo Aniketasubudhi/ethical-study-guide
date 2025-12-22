@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
+import CardSwap, { Card as SwapCard } from "@/components/ui/CardSwap";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -125,6 +126,47 @@ const Landing = () => {
                 <span>98% Satisfaction Rate</span>
               </div>
             </motion.div>
+          </motion.div>
+
+          {/* Rotating Feature Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-16 max-w-md mx-auto"
+          >
+            <CardSwap
+              interval={5000}
+              cards={[
+                <SwapCard className="text-center">
+                  <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <Shield className="h-7 w-7 text-primary" />
+                  </div>
+                  <h3 className="font-display text-xl font-semibold mb-2">Ethics Foundations</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Learn the core principles of responsible AI usage with guided lessons and real-world scenarios.
+                  </p>
+                </SwapCard>,
+                <SwapCard className="text-center">
+                  <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <GraduationCap className="h-7 w-7 text-primary" />
+                  </div>
+                  <h3 className="font-display text-xl font-semibold mb-2">Grade-Aligned Curriculum</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Personalized study plans that match your learning level and adapt to your progress.
+                  </p>
+                </SwapCard>,
+                <SwapCard className="text-center">
+                  <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <Brain className="h-7 w-7 text-primary" />
+                  </div>
+                  <h3 className="font-display text-xl font-semibold mb-2">Assessments & Case Studies</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Interactive quizzes and real-world case studies to reinforce your understanding.
+                  </p>
+                </SwapCard>,
+              ]}
+            />
           </motion.div>
         </div>
       </section>
