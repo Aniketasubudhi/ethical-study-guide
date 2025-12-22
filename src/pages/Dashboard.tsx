@@ -19,7 +19,6 @@ import AppLayout from "@/components/layouts/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import CountUp from "@/components/ui/CountUp";
 import CardSwap, { Card as SwapCard } from "@/components/ui/CardSwap";
-import MagicBento from "@/components/ui/MagicBento";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
@@ -115,44 +114,26 @@ const Dashboard = () => {
           <h2 className="font-display text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {quickActions.map((action, index) => (
-              action.gradient ? (
-                <MagicBento
-                  key={index}
-                  textAutoHide={false}
-                  enableStars={true}
-                  enableSpotlight={true}
-                  enableBorderGlow={true}
-                  enableTilt={true}
-                  enableMagnetism={true}
-                  clickEffect={true}
-                  spotlightRadius={250}
-                  particleCount={10}
-                  glowColor="168, 85, 247"
-                  className="p-6 bg-gradient-primary text-white border-0"
-                >
-                  <div onClick={() => navigate(action.href)} className="cursor-pointer">
-                    <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 bg-white/20">
-                      <action.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <h3 className="font-display font-semibold mb-1">{action.title}</h3>
-                    <p className="text-sm text-white/80">{action.description}</p>
-                    <ArrowRight className="h-4 w-4 mt-4 text-white/60" />
-                  </div>
-                </MagicBento>
-              ) : (
-                <Card
-                  key={index}
-                  className="p-6 cursor-pointer hover-lift transition-all bg-card hover:border-primary/50"
-                  onClick={() => navigate(action.href)}
-                >
-                  <div className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 bg-primary/10">
-                    <action.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-display font-semibold mb-1">{action.title}</h3>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
-                  <ArrowRight className="h-4 w-4 mt-4 text-muted-foreground" />
-                </Card>
-              )
+              <Card
+                key={index}
+                className={`p-6 cursor-pointer hover-lift transition-all ${
+                  action.gradient 
+                    ? "bg-gradient-primary text-white border-0" 
+                    : "bg-card hover:border-primary/50"
+                }`}
+                onClick={() => navigate(action.href)}
+              >
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-4 ${
+                  action.gradient ? "bg-white/20" : "bg-primary/10"
+                }`}>
+                  <action.icon className={`h-6 w-6 ${action.gradient ? "text-white" : "text-primary"}`} />
+                </div>
+                <h3 className="font-display font-semibold mb-1">{action.title}</h3>
+                <p className={`text-sm ${action.gradient ? "text-white/80" : "text-muted-foreground"}`}>
+                  {action.description}
+                </p>
+                <ArrowRight className={`h-4 w-4 mt-4 ${action.gradient ? "text-white/60" : "text-muted-foreground"}`} />
+              </Card>
             ))}
           </div>
         </motion.div>
